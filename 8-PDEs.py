@@ -109,7 +109,7 @@ plt.show()
 
 # ## Finite difference (second order, one dimension)
 # Adapted from http://kitchingroup.cheme.cmu.edu/pycse/pycse.html#sec-10-4-2 which was
-# adapted from http://www.physics.arizona.edu/~restrepo/475B/Notes/sourcehtml/node24.html
+# adapted from http://www.physics.arizona.edu/~restrepo/475B/Notes/sourcehtml/node24.html which is a dead link.
 # 
 # 
 # For this example, we solve the plane poiseuille flow problem using a finite difference approach. An advantage of the approach we use here is we do not have to rewrite the second order ODE as a set of coupled first order ODEs, nor do we have to provide guesses for the solution. We do, however, have to discretize the derivatives and formulate a linear algebra problem.
@@ -259,7 +259,103 @@ plt.legend(loc='best')
 # This example had a *Dirichlet boundary condition* (fixed value). What if you had a *Neumann boundary condition* (fixed derivative)??
 # An example is solving for temperature $T(x)$ you may specify thermal insulation ($dT/dx=0$) at one boundary instead of a fixed temperature.
 
+# # PDEs - method of lines
 # 
+# Adapted from http://kitchingroup.cheme.cmu.edu/pycse/pycse.html#sec-10-5-1
+# 
+# The PDE that describes the transient behavior of a plug flow reactor with constant volumetric flow rate is:
+# $$ \frac{\partial C_A}{\partial t} = -v_0 \frac{\partial C_A}{\partial V} + r_A $$
+# 
+# To solve this numerically in python, we will utilize the method of lines. The idea is to discretize the reactor in volume, and approximate the spatial derivatives by finite differences. Then we will have a set of coupled ordinary differential equations that can be solved in the usual way. Let us simplify the notation with $C = C_A$, and let $r_A = -k C^2$. Graphically this looks like this:
+# 
+# ![pde-method-of-lines](http://kitchingroup.cheme.cmu.edu/pycse/images/pde-method-of-lines.png)
+# 
+# This leads to the following set of equations:
+# 
+# \begin{eqnarray}
+# \frac{dC_0}{dt} &=& 0 \text{ (entrance concentration never changes)} \\
+# \frac{dC_1}{dt} &=& -v_0 \frac{C_1 - C_0}{V_1 - V_0} - k C_1^2 \\
+# \frac{dC_2}{dt} &=& -v_0 \frac{C_2 - C_1}{V_2 - V_1} - k C_2^2 \\
+# \vdots \\
+# \frac{dC_4}{dt} &=& -v_0 \frac{C_4 - C_3}{V_4 - V_3} - k C_4^2
+# \end{eqnarray}
+# 
+# Last, we need initial conditions for all the nodes in the discretization. Let us assume the reactor was full of empty solvent, so that $C_i = 0$ at $t=0$. In the next block of code, we get the transient solutions, and the steady state solution.
+
+# In[6]:
+
+from scipy.integrate import odeint
+
+Ca0 = 2     # Entering concentration
+vo = 2      # volumetric flow rate
+volume = 20 # total volume of reactor, spacetime = 10
+k = 1       # reaction rate constant
+
+N = 100     # number of points to discretize the reactor volume on
+
+init = np.zeros(N)    # Concentration in reactor at t = 0
+init[0] = Ca0         # concentration at entrance
+
+V = np.linspace(0, volume, N) # discretized volume elements
+tspan = np.linspace(0, 25)    # time span to integrate over
+
+def method_of_lines(C, t):
+    'coupled ODES at each node point'
+    D = np.zeros_like(C) # C0 is constant at entrance, so D[0] = 0
+    D[1:] = -vo * np.diff(C) / np.diff(V) - k * C[1:]**2
+    return D
+sol = odeint(method_of_lines, init, tspan)
+
+plt.plot(tspan, sol[:, -1])
+plt.xlabel('time')
+plt.ylabel('$C_A$ at exit')
+plt.show()
+
+
+# After approximately one space time, the steady state solution is reached at the exit. For completeness, we also examine the steady state solution.
+
+# In[7]:
+
+# steady state solution
+def pfr(C, V):
+    return 1.0 / vo * (-k * C**2)
+ssol = odeint(pfr, Ca0, V)
+plt.plot(V, ssol, label='Steady state')
+plt.plot(V, sol[-1], label='t = {}'.format(tspan[-1]))
+plt.xlabel('Volume')
+plt.ylabel('$C_A$')
+plt.legend(loc='best')
+plt.show()
+
+
+# There is some minor disagreement between the final transient solution and the steady state solution. That is due to the approximation in discretizing the reactor volume. In this example we used 100 nodes. You get better agreement with a larger number of nodes, say 200 or more. Of course, it takes slightly longer to compute then, since the number of coupled odes is equal to the number of nodes.
+# 
+# 
+
+# In[12]:
+
+"""
+Note that you will need to install ffmpeg or mencoder. Simplest way is probably:
+    conda install -c rmg ffmpeg
+"""
+from matplotlib import animation
+import matplotlib
+matplotlib.rc('animation', html='html5')
+# make empty figure
+fig = plt.figure()
+ax = plt.axes(xlim=(0, 20), ylim=(0, 2))
+line, = ax.plot(V, init, lw=2)
+
+def animate(i):
+    line.set_xdata(V)
+    line.set_ydata(sol[i])
+    ax.set_title('t = {0:.1f}'.format(tspan[i]))
+    ax.figure.canvas.draw()
+    return line,
+
+anim = animation.FuncAnimation(fig, animate, frames=50,  blit=True)
+anim
+
 
 # In[ ]:
 
