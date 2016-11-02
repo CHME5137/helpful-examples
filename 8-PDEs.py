@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 import numpy as np
 get_ipython().magic('matplotlib inline')
@@ -35,7 +35,7 @@ from matplotlib import pyplot as plt
 # 
 # 
 
-# In[ ]:
+# In[2]:
 
 from scipy.integrate import odeint
 
@@ -45,9 +45,8 @@ Pdrop = -100
 
 def odefun(U, y):
     u1, u2 = U
-    #
-    #
-    #
+    du1dy = u2
+    du2dy = 1.0/mu * Pdrop
     return [du1dy, du2dy]
 
 u1_0 = 0 # known
@@ -69,10 +68,10 @@ plot_results(dspan, U)
 
 # Too low! Guess higher
 
-# In[ ]:
+# In[3]:
 
 u1_0 = 0 # known
-u2_0 = 10 # guessed higher than last time
+u2_0 = 4 # guessed higher than last time
 
 U = odeint(odefun, [u1_0, u2_0], dspan)
 
@@ -81,7 +80,7 @@ plot_results(dspan, U)
 
 # Rather than keep guessing, let's use a nonlinear solver to converge upon the best value for `u2_0`
 
-# In[ ]:
+# In[4]:
 
 from scipy.optimize import fsolve
 
@@ -89,8 +88,7 @@ u1_0 = 0 # known
 
 def objective(u2_0):
     U = odeint(odefun, [u1_0, u2_0], dspan)
-    u1 = U[:,0]
-    return u1[-1]
+    return U[-1,0]
 
 u2_0, = fsolve(objective, 1.0)
 print("Optimized u2 is {}".format(u2_0))
@@ -179,26 +177,26 @@ plt.show()
 # 
 # Mapping our $u'' = \frac{1}{\mu} \frac{\Delta P}{\Delta x}$ onto the general form $$y'' = p(x)y' + q(x)y + r(x)$$ with boundary conditions $y(x_1) = \alpha$ and $y(x_2) = \beta$, we see $p(x)=0$, $q(x)=0$, $r(x)=-100$, $\alpha=0$, $\beta=0$.
 
-# In[ ]:
+# In[5]:
 
 """
 This is set up for general p, q, r, alpha, beta
 """
 # we use the notation for y'' = p(x)y' + q(x)y + r(x)
 def p(x):
-    return #
+    return 0
 
 def q(x):
-    return #
+    return 0
 
 def r(x):
-    return #
+    return -100
 
 #we use the notation y(x1) = alpha and y(x2) = beta
 x1 = 0; alpha = 0.0
 x2 = 0.1; beta = 0.0
 
-npoints = 100
+npoints = 1000
 
 # compute interval width
 h = (x2-x1)/npoints;
@@ -260,6 +258,11 @@ plt.legend(loc='best')
 # This example had a *Dirichlet boundary condition* (fixed value). What if you had a *Neumann boundary condition* (fixed derivative)??
 # An example is solving for temperature $T(x)$ you may specify thermal insulation ($dT/dx=0$) at one boundary instead of a fixed temperature.
 
+# In[6]:
+
+# Good question! (...for homework!!!)
+
+
 # # PDEs - method of lines
 # 
 # Adapted from http://kitchingroup.cheme.cmu.edu/pycse/pycse.html#sec-10-5-1
@@ -283,7 +286,7 @@ plt.legend(loc='best')
 # 
 # Last, we need initial conditions for all the nodes in the discretization. Let us assume the reactor was full of empty solvent, so that $C_i = 0$ at $t=0$. In the next block of code, we get the transient solutions, and the steady state solution.
 
-# In[ ]:
+# In[7]:
 
 from scipy.integrate import odeint
 
@@ -313,9 +316,14 @@ plt.ylabel('$C_A$ at exit')
 plt.show()
 
 
+# In[ ]:
+
+
+
+
 # After approximately one space time, the steady state solution is reached at the exit. For completeness, we also examine the steady state solution.
 
-# In[ ]:
+# In[8]:
 
 # steady state solution
 def pfr(C, V):
@@ -333,7 +341,7 @@ plt.show()
 # 
 # 
 
-# In[ ]:
+# In[9]:
 
 """
 Note that you will need to install ffmpeg or mencoder. Simplest way is probably:
@@ -376,7 +384,7 @@ anim
 # 
 # Let us say the rod has a length of 1, $k=0.02$, and solve for the time-dependent temperature profiles.
 
-# In[ ]:
+# In[10]:
 
 N = 100  # number of points to discretize
 L = 1.0
@@ -416,7 +424,12 @@ plt.ylabel('Temperature')
 plt.subplots_adjust(top=0.89, right=0.77)
 
 
-# In[ ]:
+# In[11]:
+
+# Try it again using np.diff and see if it's better
+
+
+# In[12]:
 
 """
 You'll neeed to
@@ -436,7 +449,7 @@ plt.ylabel('Temperature')
 plt.show()
 
 
-# In[ ]:
+# In[13]:
 
 from mpl_toolkits.mplot3d import Axes3D
 fig = plt.figure()
@@ -480,7 +493,7 @@ ax.view_init(elev=15, azim=-124) # adjust view so it is easy to see
 # 
 # 
 
-# In[ ]:
+# In[14]:
 
 N = 20  # number of points to discretize
 L = 1.0
@@ -542,7 +555,7 @@ plt.show()
 # Now copy the code and increase the diffusivity from $D=0.020$ to $D=0.028$ or $D=0.029$.
 # Or increase the number of points in the $x$ direction to discretize from 20 to something bigger. What happens? Can you get it stable again?
 
-# In[ ]:
+# In[15]:
 
 N = 20  # number of points to discretize
 L = 1.0
@@ -591,6 +604,36 @@ plt.show()
 # # Exercise
 # Try the rabbits and foxes again (start with simple ODEs not KMC) but have a grid of farms covering a large area.
 # Add terms for foxes and rabbits to migrate from one farm to a neighbouring farm.
+
+# In[16]:
+
+from scipy.integrate import odeint
+
+k1 = 0.015
+k2 = 0.00004
+k3 = 0.0004
+k4 = 0.04
+end_time = 600.
+
+def rates(variables, time):
+    """
+    Return the right hand side of the ODE
+    """
+    rabbits, foxes = variables
+    rate_rabbits = (k1 * rabbits - k2 * rabbits * foxes)
+    rate_foxes = (k3 * rabbits * foxes - k4 * foxes)
+    return (rate_rabbits, rate_foxes)
+
+times = np.arange(0, end_time)
+initial_conditions = (400., 200.)
+result = odeint(rates, initial_conditions, times)
+rabbits = result[:,0]
+foxes = result[:,1]
+plt.plot(times, rabbits, label='rabbits')
+plt.plot(times, foxes, label='foxes')
+plt.legend(loc="best") # put the legend at the best location to avoid overlapping things
+plt.show()
+
 
 # In[ ]:
 
