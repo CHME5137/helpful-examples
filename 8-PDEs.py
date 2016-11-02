@@ -332,7 +332,7 @@ plt.show()
 # 
 # 
 
-# In[12]:
+# In[8]:
 
 """
 Note that you will need to install ffmpeg or mencoder. Simplest way is probably:
@@ -356,6 +356,240 @@ def animate(i):
 anim = animation.FuncAnimation(fig, animate, frames=50,  blit=True)
 anim
 
+
+# ## Transient heat conduction
+# Adapted from http://kitchingroup.cheme.cmu.edu/pycse/pycse.html#sec-10-5-2 which is
+# adapated from http://msemac.redwoods.edu/~darnold/math55/DEproj/sp02/AbeRichards/slideshowdefinal.pdf
+# which is a dead link
+# 
+# We examine the transient behavior of a rod at constant T put between two heat reservoirs at different temperatures, T1 = 100, and T2 = 200. 
+# The rod will start at 150. Over time, we should expect a solution that approaches the steady state solution: a linear temperature profile from one side of the rod to the other.
+# 
+# $$\frac{\partial u}{\partial t} = k \frac{\partial^2 u}{\partial x^2}$$
+# 
+# at $t=0$, in this example we have $u_0(x) = 150$ as an initial condition, with boundary conditions $u(0,t)=100$ and $u(L,t)=200$.
+# 
+# In Matlab there is the pdepe command. There is not yet a PDE solver in scipy. Instead, we will utilze the method of lines to solve this problem. We discretize the rod into segments, and approximate the second derivative in the spatial dimension as 
+# $$\frac{\partial^2 u}{\partial x^2} = \frac{(u(x + h) - 2 u(x) + u(x-h))}{ h^2}$$
+# at each node. This leads to a set of coupled ordinary differential equations that is easy to solve.
+# 
+# Let us say the rod has a length of 1, $k=0.02$, and solve for the time-dependent temperature profiles.
+
+# In[9]:
+
+N = 100  # number of points to discretize
+L = 1.0
+X = np.linspace(0, L, N) # position along the rod
+h = L / (N - 1)
+
+k = 0.02
+
+def odefunc(u, t):
+    dudt = np.zeros(X.shape)
+
+    dudt[0] = 0 # constant at boundary condition
+    dudt[-1] = 0
+
+    # now for the internal nodes
+    for i in range(1, N-1):
+        dudt[i] = k * (u[i + 1] - 2*u[i] + u[i - 1]) / h**2
+
+    return dudt
+
+init = 150.0 * np.ones(X.shape) # initial temperature
+init[0] = 100.0  # one boundary condition
+init[-1] = 200.0 # the other boundary condition
+
+tspan = np.linspace(0.0, 5.0, 100)
+sol = odeint(odefunc, init, tspan)
+
+for i in range(0, len(tspan), 5):
+    plt.plot(X, sol[i], label='t={0:1.2f}'.format(tspan[i]))
+
+# put legend outside the figure
+plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+plt.xlabel('X position')
+plt.ylabel('Temperature')
+
+# adjust figure edges so the legend is in the figure
+plt.subplots_adjust(top=0.89, right=0.77)
+
+
+# In[10]:
+
+"""
+You'll neeed to
+    conda install seaborn
+"""
+import seaborn as sns
+plt.figure(figsize=(5, 4))
+num_lines = int(len(tspan)/5)+1
+sns.set_palette(sns.color_palette("coolwarm",num_lines))
+for i in range(0, len(tspan), 5):
+    plt.plot(X, sol[i], label='t={0:1.2f}'.format(tspan[i]))
+
+# put legend outside the figure
+plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+plt.xlabel('X position')
+plt.ylabel('Temperature')
+plt.show()
+
+
+# In[11]:
+
+from mpl_toolkits.mplot3d import Axes3D
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+SX, ST = np.meshgrid(X, tspan)
+ax.plot_surface(SX, ST, sol, cmap='jet')
+ax.set_xlabel('X')
+ax.set_ylabel('time')
+ax.set_zlabel('T')
+ax.view_init(elev=15, azim=-124) # adjust view so it is easy to see
+
+
+# ## Transient diffusion, PDEs, Finite Difference discretization
+# Adapted from http://kitchingroup.cheme.cmu.edu/pycse/pycse.html#sec-10-5-3
+# See also: http://coast.nd.edu/jjwteach/www/www/441/PdfNotes/lecture16.pdf
+# 
+# We want to solve for the concentration profile of component that diffuses into a 1D rod, with an impermeable barrier at the end. The PDE governing this situation is:
+# 
+# $$\frac{\partial C}{\partial t} = D \frac{\partial^2 C}{\partial x^2}$$
+# 
+# In this example we have $C_0(x) = 0$ at $t=0$ as an initial condition, with boundary conditions $C(0,t)=0.1$ and $\frac{\partial C}{\partial x}(L,t)=0$.
+# 
+# We are going to discretize this equation in both time and space to arrive at the solution. We will let $i$ be the index for the spatial discretization, and $j$ be the index for the temporal discretization. The discretization looks like this.
+# 
+# ![pde-diffusion-discretization-scheme](http://kitchingroup.cheme.cmu.edu/pycse/images/pde-diffusion-discretization-scheme.png)
+# 
+# Note that we cannot use the method of lines as we did before because we have the derivative-based boundary condition at one of the boundaries.
+# 
+# We approximate the time derivative as:
+# 
+# $$\frac{\partial C}{\partial t} \bigg| _{i,j} \approx \frac{C_{i,j+1} - C_{i,j}}{\Delta t} $$
+# 
+# $$\frac{\partial^2 C}{\partial  x^2} \bigg| _{i,j} \approx \frac{C_{i+1,j} - 2 C_{i,j} + C_{i-1,j}}{h^2} $$
+# 
+# We define $\alpha = \frac{D \Delta t}{h^2}$, and from these two approximations and the PDE, we solve for the unknown solution at a later time step as:
+# 
+# $$C_{i, j+1} = \alpha C_{i+1,j} + (1 - 2 \alpha) C_{i,j}  + \alpha C_{i-1,j} $$
+# 
+# We know $C_{i,j=0}$ from the initial conditions, so we simply need to iterate to evaluate $C_{i,j}$, which is the solution at each time step.
+# 
+# 
+
+# In[12]:
+
+N = 20  # number of points to discretize
+L = 1.0
+X = np.linspace(0, L, N) # position along the rod
+h = L / (N - 1)          # discretization spacing
+
+C0t = 0.1  # concentration at x = 0
+D = 0.02
+
+tfinal = 50.0
+Ntsteps = 1000
+dt = tfinal / (Ntsteps - 1)
+t = np.linspace(0, tfinal, Ntsteps)
+
+alpha = D * dt / h**2
+print(alpha)
+
+C_xt = [] # container for all the time steps
+
+# initial condition at t = 0
+C = np.zeros(X.shape)
+C[0] = C0t
+
+C_xt += [C]
+
+for j in range(1, Ntsteps):
+    N = np.zeros(C.shape)
+    N[0] =  C0t
+    N[1:-1] = alpha*C[2:] + (1 - 2 * alpha) * C[1:-1] + alpha * C[0:-2]
+    N[-1] = N[-2]  # derivative boundary condition flux = 0
+    C[:] = N
+    C_xt += [N]
+
+    # plot selective solutions
+    sns.set_palette(sns.color_palette("coolwarm",10))
+    if j in [1,2,5,10,20,50,100,200,500]:
+        plt.plot(X, N, label='t={0:1.2f}'.format(t[j]))
+
+plt.xlabel('Position in rod')
+plt.ylabel('Concentration')
+plt.title('Concentration at different times')
+plt.legend(loc='best')
+plt.show()
+
+C_xt = np.array(C_xt)
+plt.figure()
+sns.set_palette(sns.color_palette("coolwarm",4))
+plt.plot(t, C_xt[:,5], label='x={0:1.2f}'.format(X[5]))
+plt.plot(t, C_xt[:,10], label='x={0:1.2f}'.format(X[10]))
+plt.plot(t, C_xt[:,15], label='x={0:1.2f}'.format(X[15]))
+plt.plot(t, C_xt[:,19], label='x={0:1.2f}'.format(X[19]))
+plt.legend(loc='best')
+plt.xlabel('Time')
+plt.ylabel('Concentration')
+plt.title('Concentration at different locations')
+plt.show()
+
+
+# Now copy the code and increase the diffusivity from $D=0.020$ to $D=0.028$ or $D=0.029$.
+# Or increase the number of points in the $x$ direction to discretize from 20 to something bigger. What happens? Can you get it stable again?
+
+# In[ ]:
+
+N = 20  # number of points to discretize
+L = 1.0
+X = np.linspace(0, L, N) # position along the rod
+h = L / (N - 1)          # discretization spacing
+
+C0t = 0.1  # concentration at x = 0
+D = 0.028
+
+tfinal = 50.0
+Ntsteps = 1000
+dt = tfinal / (Ntsteps - 1)
+t = np.linspace(0, tfinal, Ntsteps)
+
+alpha = D * dt / h**2
+print(alpha)
+
+C_xt = [] # container for all the time steps
+
+# initial condition at t = 0
+C = np.zeros(X.shape)
+C[0] = C0t
+
+C_xt += [C]
+
+for j in range(1, Ntsteps):
+    N = np.zeros(C.shape)
+    N[0] =  C0t
+    N[1:-1] = alpha*C[2:] + (1 - 2 * alpha) * C[1:-1] + alpha * C[0:-2]
+    N[-1] = N[-2]  # derivative boundary condition flux = 0
+    C[:] = N
+    C_xt += [N]
+
+    # plot selective solutions
+    sns.set_palette(sns.color_palette("coolwarm",10))
+    if j in [1,2,5,10,20,50,100,200,500]:
+        plt.plot(X, N, label='t={0:1.2f}'.format(t[j]))
+
+plt.xlabel('Position in rod')
+plt.ylabel('Concentration')
+plt.title('Concentration at different times')
+plt.legend(loc='best')
+plt.show()
+
+
+# # Exercise
+# Try the rabbits and foxes again (start with simple ODEs not KMC) but have a grid of farms covering a large area.
+# Add terms for foxes and rabbits to migrate from one farm to a neighbouring farm.
 
 # In[ ]:
 
