@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 import numpy as np
 get_ipython().magic('matplotlib inline')
@@ -35,7 +35,7 @@ from matplotlib import pyplot as plt
 # 
 # 
 
-# In[2]:
+# In[ ]:
 
 from scipy.integrate import odeint
 
@@ -45,8 +45,9 @@ Pdrop = -100
 
 def odefun(U, y):
     u1, u2 = U
-    du1dy = u2
-    du2dy = 1.0 / mu * Pdrop
+    #
+    #
+    #
     return [du1dy, du2dy]
 
 u1_0 = 0 # known
@@ -68,7 +69,7 @@ plot_results(dspan, U)
 
 # Too low! Guess higher
 
-# In[3]:
+# In[ ]:
 
 u1_0 = 0 # known
 u2_0 = 10 # guessed higher than last time
@@ -80,7 +81,7 @@ plot_results(dspan, U)
 
 # Rather than keep guessing, let's use a nonlinear solver to converge upon the best value for `u2_0`
 
-# In[4]:
+# In[ ]:
 
 from scipy.optimize import fsolve
 
@@ -178,20 +179,20 @@ plt.show()
 # 
 # Mapping our $u'' = \frac{1}{\mu} \frac{\Delta P}{\Delta x}$ onto the general form $$y'' = p(x)y' + q(x)y + r(x)$$ with boundary conditions $y(x_1) = \alpha$ and $y(x_2) = \beta$, we see $p(x)=0$, $q(x)=0$, $r(x)=-100$, $\alpha=0$, $\beta=0$.
 
-# In[5]:
+# In[ ]:
 
 """
 This is set up for general p, q, r, alpha, beta
 """
 # we use the notation for y'' = p(x)y' + q(x)y + r(x)
 def p(x):
-    return 0
+    return #
 
 def q(x):
-    return 0
+    return #
 
 def r(x):
-    return -100
+    return #
 
 #we use the notation y(x1) = alpha and y(x2) = beta
 x1 = 0; alpha = 0.0
@@ -282,7 +283,7 @@ plt.legend(loc='best')
 # 
 # Last, we need initial conditions for all the nodes in the discretization. Let us assume the reactor was full of empty solvent, so that $C_i = 0$ at $t=0$. In the next block of code, we get the transient solutions, and the steady state solution.
 
-# In[6]:
+# In[ ]:
 
 from scipy.integrate import odeint
 
@@ -314,7 +315,7 @@ plt.show()
 
 # After approximately one space time, the steady state solution is reached at the exit. For completeness, we also examine the steady state solution.
 
-# In[7]:
+# In[ ]:
 
 # steady state solution
 def pfr(C, V):
@@ -332,7 +333,7 @@ plt.show()
 # 
 # 
 
-# In[8]:
+# In[ ]:
 
 """
 Note that you will need to install ffmpeg or mencoder. Simplest way is probably:
@@ -375,7 +376,7 @@ anim
 # 
 # Let us say the rod has a length of 1, $k=0.02$, and solve for the time-dependent temperature profiles.
 
-# In[9]:
+# In[ ]:
 
 N = 100  # number of points to discretize
 L = 1.0
@@ -415,7 +416,7 @@ plt.ylabel('Temperature')
 plt.subplots_adjust(top=0.89, right=0.77)
 
 
-# In[10]:
+# In[ ]:
 
 """
 You'll neeed to
@@ -435,7 +436,7 @@ plt.ylabel('Temperature')
 plt.show()
 
 
-# In[11]:
+# In[ ]:
 
 from mpl_toolkits.mplot3d import Axes3D
 fig = plt.figure()
@@ -479,7 +480,7 @@ ax.view_init(elev=15, azim=-124) # adjust view so it is easy to see
 # 
 # 
 
-# In[12]:
+# In[ ]:
 
 N = 20  # number of points to discretize
 L = 1.0
